@@ -77,39 +77,59 @@
 
   .sheet-overlay{position:fixed;inset:0;background:rgba(29,43,54,.35);display:none;align-items:flex-end;justify-content:center;z-index:20;}
   .sheet-overlay.open{display:flex;}
-  .sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:20px 20px 26px;
-    transform:translateY(100%);transition:transform .22s ease;}
+  .sheet{position:relative;width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:20px 20px 26px;
+    transform:translateY(100%);transition:transform .22s ease;max-height:88vh;overflow-y:auto;}
   .sheet-overlay.open .sheet{transform:translateY(0);}
   .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 14px;}
   .sheet h2{margin:0 0 2px;font-size:17px;}
-  .sheet .loc{font-size:12.5px;color:var(--grey);margin-bottom:16px;}
+  .sheet .loc{font-size:12.5px;color:var(--grey);margin-bottom:14px;}
+  .close-btn{position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;color:var(--grey);cursor:pointer;}
+
+  /* プロフィール（アクセシビリティ情報） */
+  .profile-empty{font-size:12px;color:var(--grey);background:#F1EEE4;padding:10px 12px;border-radius:10px;margin-bottom:14px;}
+  details.profile-cat{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+  details.profile-cat summary{padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer;list-style:none;
+    display:flex;justify-content:space-between;align-items:center;background:#fff;}
+  details.profile-cat summary::-webkit-details-marker{display:none;}
+  details.profile-cat summary::after{content:"+";color:var(--grey);font-weight:400;}
+  details.profile-cat[open] summary::after{content:"−";}
+  details.profile-cat .cat-body{padding:2px 14px 12px;}
+  .profile-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:6px 0;border-top:1px solid #F1EEE4;}
+  .profile-row .k{color:var(--grey);flex-shrink:0;}
+  .profile-row .v{text-align:right;}
+
+  /* レビュー */
+  .group-label{font-size:11.5px;color:var(--grey);margin:16px 0 6px;}
+  .review-card{background:#F7F5EE;border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;}
+  .review-card .rtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;}
+  .review-card img{width:100%;max-width:160px;border-radius:8px;margin-top:6px;cursor:pointer;}
+  .review-card .rtime{color:var(--grey);font-size:11px;margin-top:4px;}
+  .no-review{font-size:12px;color:var(--grey);margin-bottom:10px;}
+
   .status-row{display:flex;gap:8px;margin-bottom:10px;}
   .status-btn{flex:1;padding:10px 6px;border-radius:12px;border:1px solid var(--line);background:#fff;
     font-size:12.5px;cursor:pointer;color:var(--grey);text-align:center;}
   .status-btn.selected{border-color:var(--green);background:var(--green-soft);color:var(--green);font-weight:600;}
   .status-btn.alert-selected{border-color:var(--alert);background:#F6E4DD;color:var(--alert);font-weight:600;}
-  .group-label{font-size:11.5px;color:var(--grey);margin:14px 0 6px;}
-  .photo-box{display:flex;gap:10px;margin-bottom:14px;}
-  .photo-frame{width:88px;height:88px;border-radius:12px;background:#F1EEE4;border:1px solid var(--line);
+
+  .photo-box{display:flex;gap:10px;margin-bottom:14px;align-items:center;}
+  .photo-frame{width:72px;height:72px;border-radius:12px;background:#F1EEE4;border:1px solid var(--line);
     overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;}
   .photo-frame img{width:100%;height:100%;object-fit:cover;}
-  .photo-frame .ph-empty{font-size:10px;color:var(--grey);text-align:center;padding:4px;}
-  .photo-frame .ph-label{position:absolute;bottom:0;left:0;right:0;background:rgba(29,43,54,.6);
-    color:#fff;font-size:9px;text-align:center;padding:2px 0;}
-  .photo-actions{display:flex;flex-direction:column;justify-content:center;gap:6px;}
-  .photo-btn{font-size:12px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);
-    background:#fff;color:var(--ink);cursor:pointer;text-align:left;}
+  .photo-frame .ph-empty{font-size:9.5px;color:var(--grey);text-align:center;padding:4px;}
+  .photo-btn{font-size:12px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer;text-align:left;flex:1;}
   .photo-btn:active{background:var(--green-soft);}
-  .card-thumb{width:40px;height:40px;border-radius:9px;object-fit:cover;flex-shrink:0;margin-left:8px;}
+
+  .submit-btn{width:100%;padding:12px;border-radius:12px;border:none;background:var(--green);color:#fff;
+    font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+  .submit-btn:disabled{opacity:.5;}
+  .submit-note{font-size:11px;color:var(--grey);text-align:center;margin-top:8px;}
 
   .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;
     justify-content:center;z-index:30;padding:20px;}
   .lightbox.open{display:flex;}
   .lightbox img{max-width:100%;max-height:100%;border-radius:10px;}
-
-  .updated{font-size:11px;color:var(--grey);margin-top:16px;text-align:center;}
-  .close-btn{position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;color:var(--grey);cursor:pointer;}
-  .sheet{position:relative;}
 
   footer{margin-top:auto;padding:16px 20px 22px;font-size:11px;color:var(--grey);border-top:1px solid var(--line);line-height:1.6;}
 </style>
@@ -119,7 +139,7 @@
 
   <header>
     <h1>校内トイレマップ</h1>
-    <p>空き状況・清掃状況をみんなで共有しよう</p>
+    <p>設備情報の確認と、みんなでのレビュー投稿</p>
   </header>
 
   <div class="floor-tabs" id="floorTabs"></div>
@@ -149,32 +169,56 @@
     <h2 id="sheetTitle"></h2>
     <div class="loc" id="sheetLoc"></div>
 
+    <div class="group-label" style="margin-top:0;">設備情報</div>
+    <div id="profileArea"></div>
+
+    <div class="group-label">みんなのレビュー</div>
+    <div id="reviewsArea"></div>
+
+    <div class="group-label">レビューを投稿する</div>
+
     <div class="photo-box">
-      <div class="photo-frame" id="refPhotoFrame"></div>
-      <div class="photo-frame" id="reportPhotoFrame"></div>
-      <div class="photo-actions">
-        <label class="photo-btn">
-          写真を撮って報告
-          <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none;">
-        </label>
-      </div>
+      <div class="photo-frame" id="pendingPhotoFrame"></div>
+      <label class="photo-btn">
+        写真を撮って添付(任意)
+        <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none;">
+      </label>
     </div>
 
-    <div class="group-label">清掃状況</div>
     <div class="status-row" id="cleanRow"></div>
-
-    <div class="group-label">混雑状況</div>
     <div class="status-row" id="crowdRow"></div>
-
-    <div class="group-label">紙の在庫</div>
     <div class="status-row" id="paperRow"></div>
 
-    <div class="updated" id="updatedAt"></div>
+    <button class="submit-btn" id="submitBtn">この内容でレビューを投稿</button>
+    <div class="submit-note" id="submitNote"></div>
   </div>
 </div>
 
-<script>
-// ---------- データ定義（実際の校舎に合わせて自由に書き換えてください） ----------
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" src="">
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, getDocs, addDoc,
+  serverTimestamp, query, orderBy, limit
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+let db = null, storage = null, FIREBASE_OK = false;
+try{
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  storage = getStorage(app);
+  FIREBASE_OK = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== "ここに貼り付け";
+}catch(e){ FIREBASE_OK = false; }
+
+// ---------- 校舎レイアウト（実際の校舎に合わせて自由に書き換えてください） ----------
+// 各トイレの id は、Firestoreの toilets コレクションのドキュメントIDと一致させてください。
 const FLOORS = [
   {
     id: "1F", label: "1階",
@@ -226,36 +270,89 @@ const FLOORS = [
   }
 ];
 
+// ---------- 設備プロフィールのカテゴリ定義（Firestoreの toilets/{id} のフィールド構成） ----------
+const CATEGORY_SCHEMA = [
+  { key:"accessibility", label:"アクセシビリティ", fields:[
+    ["buildingFloor","棟の階数"], ["elevator","エレベーター"], ["toiletFloor","トイレのある階"],
+    ["multipurposeToilet","多目的トイレ"], ["allGenderToilet","オールジェンダートイレ"], ["anyoneToilet","だれでもトイレ"],
+    ["multipurposeFloor","多目的トイレのある階"], ["allGenderFloor","オールジェンダートイレのある階"], ["anyoneFloor","だれでもトイレのある階"],
+    ["brailleGuide","点字案内"], ["audioGuide","音声案内"], ["occupancyCheckDesc","個室の利用率が調べられるか"], ["other","その他"]
+  ]},
+  { key:"genderNorms", label:"ジェンダー規範", fields:[
+    ["pictogramDesc","ピクトグラムの種類"], ["other","その他"]
+  ]},
+  { key:"hygiene", label:"衛生", fields:[
+    ["disinfectant","消毒液"], ["trashCan","ゴミ箱"], ["sanitaryService","生理用品サービス"], ["sanitaryBox","サニタリーボックス"], ["other","その他"]
+  ]},
+  { key:"security", label:"防犯", fields:[
+    ["seatingOutside","トイレ前のソファ・椅子"], ["entranceLayoutDesc","出入り口の配置"], ["hasDoor","出入り口の扉"],
+    ["lightingType","照明の種類"], ["hasWindow","窓の有無"], ["emergencyButton","通報装置・非常用呼び出しボタン"], ["other","その他"]
+  ]},
+  { key:"privacy", label:"プライバシー", fields:[
+    ["urinalPrivacy","小便器の個室化"], ["whiteNoiseDevice","流水音発生装置"], ["other","その他"]
+  ]},
+  { key:"stallUsability", label:"トイレ個室の使いやすさ", fields:[
+    ["stallCount","トイレ個室数"], ["westernCount","洋式トイレの数"], ["heatedSeat","便座温め機能"], ["washlet","ウォシュレット"],
+    ["tpReady","すぐ使えるトイレットペーパー数"], ["tpSpare","予備トイレットペーパー数"], ["flushType","排水様式"],
+    ["hookCount","荷物かけの個数"], ["hookPositionDesc","荷物かけの位置"], ["luggageSpace","荷物置き場"], ["multilingual","多言語表示"], ["other","その他"]
+  ]},
+  { key:"multipurposeUsability", label:"多目的トイレの使いやすさ", fields:[
+    ["door","扉"], ["occupiedIndicator","使用中表示"], ["handrailPosition","手すりの位置"], ["handrailMovable","手すりの可動性"],
+    ["fixtureHeightDesc","設備の高さ"], ["sanitaryBox","サニタリーボックス"], ["luggageSpace","荷物置き場"], ["partition","仕切り"],
+    ["adultCareBed","大人用介護ベッド"], ["ostomateFacility","オストメイト用設備"], ["outlet","コンセント"], ["other","その他"]
+  ]},
+  { key:"spaceUsability", label:"トイレ空間の使いやすさ", fields:[
+    ["layoutType","空間の設計"], ["hvac","空調設備"], ["sinkCount","洗面台の数"], ["faucetType","蛇口の種類"], ["soapType","ハンドソープの種類"],
+    ["dryerCount","自動乾燥機の個数"], ["paperTowelCount","ペーパータオル機の個数"], ["makeupSpaceCount","化粧スペースの個数"],
+    ["restSpace","休憩スペース"], ["changingSpace","着替えスペース"], ["other","その他"]
+  ]},
+  { key:"childFacilities", label:"子供連れ利用者向け設備", fields:[
+    ["nursingRoom","授乳室"], ["babyChair","ベビー椅子"], ["diaperChange","おむつ替え"], ["formulaWaterHeater","調乳用温水器"],
+    ["sink","シンク・手洗い場"], ["kidsToilet","子供用トイレ"], ["kidsSink","子供用洗面台"], ["strollerAccessible","ベビーカーのまま入れる広いトイレ"], ["other","その他"]
+  ]},
+];
+
 const TYPE_COLOR = {male:"var(--blue)", female:"var(--plum)", any:"var(--grey)"};
 const TYPE_LABEL = {male:"男", female:"女", any:"共"};
 
 let currentFloor = 0;
 let currentView = "map";
-let statusCache = {}; // id -> {clean, crowd, paper, updatedAt}
 let activeToilet = null;
-
-const STORAGE_OK = !!(window.storage && window.storage.get);
-
-async function loadStatus(id){
-  if(!STORAGE_OK) return null;
-  try{
-    const res = await window.storage.get("toilet:"+id, true);
-    return res ? JSON.parse(res.value) : null;
-  }catch(e){ return null; }
-}
-async function saveStatus(id, data){
-  if(!STORAGE_OK) return;
-  try{ await window.storage.set("toilet:"+id, JSON.stringify(data), true); }catch(e){}
-}
+let profileCache = {};   // id -> Firestore profile doc data (or null)
+let reviewsCache = {};   // id -> array of reviews, newest first
+let pending = {clean:"ok", crowd:"free", paper:"ok", photo:null};
 
 function allToilets(){
   return FLOORS.flatMap(f => f.toilets.map(t => ({...t, floor:f.id, floorLabel:f.label})));
 }
 
-async function refreshAllStatus(){
+async function loadProfile(id){
+  if(!FIREBASE_OK) return null;
+  try{
+    const snap = await getDoc(doc(db, "toilets", id));
+    return snap.exists() ? snap.data() : null;
+  }catch(e){ return null; }
+}
+
+async function loadReviews(id){
+  if(!FIREBASE_OK) return [];
+  try{
+    const q = query(collection(db, "toilets", id, "reviews"), orderBy("createdAt","desc"), limit(10));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data());
+  }catch(e){ return []; }
+}
+
+function latestStatus(id){
+  const reviews = reviewsCache[id] || [];
+  return reviews[0] || {clean:"ok", crowd:"free", paper:"ok"};
+}
+
+async function refreshAllData(){
   const toilets = allToilets();
   for(const t of toilets){
-    statusCache[t.id] = await loadStatus(t.id) || {clean:"ok", crowd:"free", paper:"ok", updatedAt:null};
+    profileCache[t.id] = await loadProfile(t.id);
+    reviewsCache[t.id] = await loadReviews(t.id);
   }
 }
 
@@ -285,7 +382,7 @@ function renderMap(){
     svg += `<text x="${s.x + s.w/2}" y="${s.y + s.h/2}" class="stair-label" text-anchor="middle" dominant-baseline="central">${s.label}</text>`;
   });
   floor.toilets.forEach(t=>{
-    const st = statusCache[t.id] || {clean:"ok"};
+    const st = latestStatus(t.id);
     const dirty = st.clean === "dirty" ? " status-dirty" : "";
     svg += `<g class="pin${dirty}" data-id="${t.id}" transform="translate(${t.x},${t.y})">
       <circle class="ring" r="15" />
@@ -300,20 +397,11 @@ function renderMap(){
   });
 }
 
-function statusLabel(kind, val){
-  const map = {
-    clean: {ok:"きれい", dirty:"汚れあり"},
-    crowd: {free:"空いている", crowded:"混んでいる"},
-    paper: {ok:"あり", low:"少ない・なし"}
-  };
-  return map[kind][val] || val;
-}
-
 function renderList(){
   const wrap = document.getElementById("listView");
   wrap.innerHTML = "";
   allToilets().forEach(t=>{
-    const st = statusCache[t.id] || {clean:"ok", crowd:"free", paper:"ok"};
+    const st = latestStatus(t.id);
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -324,11 +412,10 @@ function renderList(){
           <div class="card-sub">${t.floorLabel}・${t.loc}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;">
+      <div>
         ${st.clean==="dirty" ? '<span class="tag dirty">汚れ報告</span>' :
           st.crowd==="crowded" ? '<span class="tag crowded">混雑</span>' :
           '<span class="tag ok">利用OK</span>'}
-        ${st.photo ? `<img class="card-thumb" src="${st.photo}">` : ""}
       </div>`;
     card.onclick = ()=> openSheet(t.id);
     wrap.appendChild(card);
@@ -348,53 +435,107 @@ function renderAll(){
   }
 }
 
+function renderProfile(id){
+  const area = document.getElementById("profileArea");
+  const profile = profileCache[id];
+  if(!profile){
+    area.innerHTML = `<div class="profile-empty">まだ設備情報が登録されていません。</div>`;
+    return;
+  }
+  let html = "";
+  CATEGORY_SCHEMA.forEach(cat=>{
+    const data = profile[cat.key];
+    if(!data) return;
+    const rows = cat.fields
+      .filter(([k]) => data[k] !== undefined && data[k] !== null && data[k] !== "")
+      .map(([k,label]) => `<div class="profile-row"><span class="k">${label}</span><span class="v">${data[k]}</span></div>`)
+      .join("");
+    if(!rows) return;
+    html += `<details class="profile-cat"><summary>${cat.label}</summary><div class="cat-body">${rows}</div></details>`;
+  });
+  area.innerHTML = html || `<div class="profile-empty">まだ設備情報が登録されていません。</div>`;
+}
+
+function statusText(kind, val){
+  const map = {
+    clean: {ok:"きれい", dirty:"汚れあり"},
+    crowd: {free:"空いている", crowded:"混んでいる"},
+    paper: {ok:"紙あり", low:"紙少ない・なし"}
+  };
+  return (map[kind] && map[kind][val]) || val;
+}
+
+function renderReviews(id){
+  const area = document.getElementById("reviewsArea");
+  const reviews = reviewsCache[id] || [];
+  if(reviews.length === 0){
+    area.innerHTML = `<div class="no-review">まだレビューがありません。最初の投稿をしてみましょう。</div>`;
+    return;
+  }
+  area.innerHTML = reviews.map(r=>{
+    const time = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString("ja-JP") : "";
+    const photoHtml = r.photo ? `<img src="${r.photo}" data-src="${r.photo}">` : "";
+    return `<div class="review-card">
+      <div class="rtags">
+        <span class="tag ${r.clean==='dirty'?'dirty':'ok'}">${statusText('clean', r.clean)}</span>
+        <span class="tag ${r.crowd==='crowded'?'crowded':'ok'}">${statusText('crowd', r.crowd)}</span>
+        <span class="tag ${r.paper==='low'?'dirty':'ok'}">${statusText('paper', r.paper)}</span>
+      </div>
+      ${photoHtml}
+      <div class="rtime">${time}</div>
+    </div>`;
+  }).join("");
+  area.querySelectorAll("img[data-src]").forEach(img=>{
+    img.onclick = ()=> openLightbox(img.getAttribute("data-src"));
+  });
+}
+
 function openSheet(id){
   activeToilet = allToilets().find(t=>t.id===id);
-  const st = statusCache[id] || {clean:"ok", crowd:"free", paper:"ok", updatedAt:null};
+  pending = {clean:"ok", crowd:"free", paper:"ok", photo:null};
+
   document.getElementById("sheetTitle").textContent = activeToilet.name;
   document.getElementById("sheetLoc").textContent = activeToilet.floorLabel + "・" + activeToilet.loc;
 
-  renderPhotoFrame("refPhotoFrame", activeToilet.refPhoto, "参考写真", "未撮影");
-  renderPhotoFrame("reportPhotoFrame", st.photo, "報告写真", "報告なし");
+  renderProfile(id);
+  renderReviews(id);
+  renderPendingPhoto();
+  buildRow("cleanRow", "clean", [["ok","きれい"],["dirty","汚れあり"]]);
+  buildRow("crowdRow", "crowd", [["free","空いている"],["crowded","混んでいる"]]);
+  buildRow("paperRow", "paper", [["ok","紙あり"],["low","紙少ない・なし"]]);
 
-  buildRow("cleanRow", "clean", [["ok","きれい"],["dirty","汚れあり"]], st.clean);
-  buildRow("crowdRow", "crowd", [["free","空いている"],["crowded","混んでいる"]], st.crowd);
-  buildRow("paperRow", "paper", [["ok","あり"],["low","少ない・なし"]], st.paper);
-
-  document.getElementById("updatedAt").textContent = st.updatedAt
-    ? "最終報告: " + new Date(st.updatedAt).toLocaleString("ja-JP")
-    : "まだ報告がありません";
+  document.getElementById("submitNote").textContent = FIREBASE_OK
+    ? ""
+    : "Firebaseの設定が未完了のため、レビューはまだ投稿できません。";
+  document.getElementById("submitBtn").disabled = !FIREBASE_OK;
 
   document.getElementById("overlay").classList.add("open");
 }
 
-function buildRow(rowId, kind, options, current){
+function buildRow(rowId, kind, options){
   const row = document.getElementById(rowId);
   row.innerHTML = "";
   options.forEach(([val,label])=>{
     const btn = document.createElement("button");
-    btn.className = "status-btn" + (current===val ? (val==="dirty"||val==="low" ? " alert-selected" : " selected") : "");
+    btn.className = "status-btn" + (pending[kind]===val ? (val==="dirty"||val==="low"||val==="crowded" ? " alert-selected" : " selected") : "");
     btn.textContent = label;
-    btn.onclick = async ()=>{
-      const st = statusCache[activeToilet.id] || {clean:"ok", crowd:"free", paper:"ok"};
-      st[kind] = val;
-      st.updatedAt = Date.now();
-      statusCache[activeToilet.id] = st;
-      await saveStatus(activeToilet.id, st);
-      openSheet(activeToilet.id);
-      renderAll();
+    btn.onclick = ()=>{
+      pending[kind] = val;
+      buildRow("cleanRow", "clean", [["ok","きれい"],["dirty","汚れあり"]]);
+      buildRow("crowdRow", "crowd", [["free","空いている"],["crowded","混んでいる"]]);
+      buildRow("paperRow", "paper", [["ok","紙あり"],["low","紙少ない・なし"]]);
     };
     row.appendChild(btn);
   });
 }
 
-function renderPhotoFrame(elId, src, labelIfPresent, labelIfEmpty){
-  const el = document.getElementById(elId);
-  if(src){
-    el.innerHTML = `<img src="${src}"><div class="ph-label">${labelIfPresent}</div>`;
-    el.onclick = ()=> openLightbox(src);
+function renderPendingPhoto(){
+  const el = document.getElementById("pendingPhotoFrame");
+  if(pending.photo){
+    el.innerHTML = `<img src="${pending.photo}">`;
+    el.onclick = ()=> openLightbox(pending.photo);
   } else {
-    el.innerHTML = `<div class="ph-empty">${labelIfEmpty}</div>`;
+    el.innerHTML = `<div class="ph-empty">写真なし</div>`;
     el.onclick = null;
   }
 }
@@ -419,7 +560,7 @@ function resizeImageFile(file, maxSize){
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
         canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
+        canvas.toBlob(blob => resolve({dataUrl: canvas.toDataURL("image/jpeg", 0.7), blob}), "image/jpeg", 0.7);
       };
       img.src = e.target.result;
     };
@@ -429,16 +570,38 @@ function resizeImageFile(file, maxSize){
 
 document.getElementById("photoInput").addEventListener("change", async (e)=>{
   const file = e.target.files[0];
-  if(!file || !activeToilet) return;
-  const dataUrl = await resizeImageFile(file, 640);
-  const st = statusCache[activeToilet.id] || {clean:"ok", crowd:"free", paper:"ok"};
-  st.photo = dataUrl;
-  st.updatedAt = Date.now();
-  statusCache[activeToilet.id] = st;
-  await saveStatus(activeToilet.id, st);
-  openSheet(activeToilet.id);
-  renderAll();
+  if(!file) return;
+  const {dataUrl, blob} = await resizeImageFile(file, 640);
+  pending.photo = dataUrl;
+  pending._blob = blob;
+  renderPendingPhoto();
   e.target.value = "";
+});
+
+document.getElementById("submitBtn").addEventListener("click", async ()=>{
+  if(!activeToilet || !FIREBASE_OK) return;
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.textContent = "投稿中…";
+  try{
+    let photoUrl = null;
+    if(pending._blob){
+      const fileRef = ref(storage, `reviews/${activeToilet.id}/${Date.now()}.jpg`);
+      await uploadBytes(fileRef, pending._blob);
+      photoUrl = await getDownloadURL(fileRef);
+    }
+    await addDoc(collection(db, "toilets", activeToilet.id, "reviews"), {
+      clean: pending.clean, crowd: pending.crowd, paper: pending.paper,
+      photo: photoUrl, createdAt: serverTimestamp()
+    });
+    reviewsCache[activeToilet.id] = await loadReviews(activeToilet.id);
+    openSheet(activeToilet.id);
+    renderAll();
+  }catch(err){
+    document.getElementById("submitNote").textContent = "投稿に失敗しました。通信環境を確認してください。";
+  }
+  btn.disabled = false;
+  btn.textContent = "この内容でレビューを投稿";
 });
 
 document.getElementById("closeSheet").onclick = ()=>{
@@ -467,15 +630,12 @@ if("serviceWorker" in navigator){
 }
 
 (async function init(){
-  document.getElementById("footerNote").textContent = STORAGE_OK
-    ? "報告データはこのプレビュー内で共有・保存されます（実際の学校サイトとして公開する場合は別途データベースが必要です）。"
-    : "このプレビューではデータ保存が利用できません。実際の校舎データに差し替えてご利用ください。";
-  await refreshAllStatus();
+  document.getElementById("footerNote").textContent = FIREBASE_OK
+    ? "設備情報はFirebaseコンソールから登録・更新してください。レビューは生徒が投稿できます。"
+    : "firebase-config.js に自分のFirebase設定を入力すると、設備情報の表示とレビュー投稿が有効になります。";
+  await refreshAllData();
   renderAll();
 })();
-<div class="lightbox" id="lightbox">
-  <img id="lightboxImg" src="">
-</div>
 </script>
 </body>
 </html>

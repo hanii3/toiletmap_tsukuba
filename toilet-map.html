@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校内トイレマップ</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2F6F4E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="トイレマップ">
+<style>
+  :root{
+    --paper:#FBF9F4;
+    --ink:#1D2B36;
+    --green:#2F6F4E;
+    --green-soft:#E4EFE8;
+    --blue:#3E6D9C;
+    --plum:#9C5B7D;
+    --grey:#6B6558;
+    --alert:#C1502E;
+    --line:#D9D4C7;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic",-apple-system,"Noto Sans JP",sans-serif;
+  }
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  header{padding:20px 20px 12px;border-bottom:1px solid var(--line);}
+  header h1{font-size:20px;margin:0 0 2px;letter-spacing:.02em;}
+  header p{margin:0;font-size:12.5px;color:var(--grey);}
+
+  .floor-tabs{display:flex;gap:8px;padding:14px 20px 0;}
+  .floor-tab{flex:1;text-align:center;padding:9px 0;border-radius:999px;border:1px solid var(--line);
+    background:#fff;font-size:14px;cursor:pointer;color:var(--grey);transition:.15s;}
+  .floor-tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+  .map-wrap{padding:16px 16px 6px;position:relative;}
+  svg{width:100%;height:auto;display:block;}
+  .room{fill:#fff;stroke:var(--line);stroke-width:1;}
+  .room-label{font-size:9px;fill:var(--grey);}
+  .corridor{fill:#F1EEE4;}
+  .stair{fill:#EDE7D8;stroke:var(--line);}
+  .stair-label{font-size:8px;fill:var(--grey);}
+
+  .pin{cursor:pointer;}
+  .pin circle.base{stroke:#fff;stroke-width:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25));}
+  .pin text{fill:#fff;font-size:10px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none;}
+  .pin.status-dirty circle.ring{stroke:var(--alert);}
+  .pin .ring{fill:none;stroke-width:2;opacity:0;}
+  .pin.status-dirty .ring{opacity:1;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 20px 4px;font-size:11.5px;color:var(--grey);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .list{padding:6px 16px 90px;display:flex;flex-direction:column;gap:8px;}
+  .card{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;
+    display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+  .card:active{background:var(--green-soft);}
+  .card-left{display:flex;align-items:center;gap:10px;}
+  .badge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:12px;font-weight:700;flex-shrink:0;}
+  .card-title{font-size:14.5px;font-weight:600;}
+  .card-sub{font-size:11.5px;color:var(--grey);margin-top:1px;}
+  .tag{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:600;}
+  .tag.ok{background:var(--green-soft);color:var(--green);}
+  .tag.dirty{background:#F6E4DD;color:var(--alert);}
+  .tag.crowded{background:#F1E8DC;color:#8A6A2E;}
+
+  .view-toggle{display:flex;gap:6px;padding:14px 20px 0;justify-content:flex-end;}
+  .view-toggle button{border:none;background:none;font-size:12.5px;color:var(--grey);padding:4px 8px;cursor:pointer;border-bottom:2px solid transparent;}
+  .view-toggle button.active{color:var(--ink);border-color:var(--green);font-weight:600;}
+
+  .sheet-overlay{position:fixed;inset:0;background:rgba(29,43,54,.35);display:none;align-items:flex-end;justify-content:center;z-index:20;}
+  .sheet-overlay.open{display:flex;}
+  .sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:20px 20px 26px;
+    transform:translateY(100%);transition:transform .22s ease;}
+  .sheet-overlay.open .sheet{transform:translateY(0);}
+  .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 14px;}
+  .sheet h2{margin:0 0 2px;font-size:17px;}
+  .sheet .loc{font-size:12.5px;color:var(--grey);margin-bottom:16px;}
+  .status-row{display:flex;gap:8px;margin-bottom:10px;}
+  .status-btn{flex:1;padding:10px 6px;border-radius:12px;border:1px solid var(--line);background:#fff;
+    font-size:12.5px;cursor:pointer;color:var(--grey);text-align:center;}
+  .status-btn.selected{border-color:var(--green);background:var(--green-soft);color:var(--green);font-weight:600;}
+  .status-btn.alert-selected{border-color:var(--alert);background:#F6E4DD;color:var(--alert);font-weight:600;}
+  .group-label{font-size:11.5px;color:var(--grey);margin:14px 0 6px;}
+  .photo-box{display:flex;gap:10px;margin-bottom:14px;}
+  .photo-frame{width:88px;height:88px;border-radius:12px;background:#F1EEE4;border:1px solid var(--line);
+    overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;}
+  .photo-frame img{width:100%;height:100%;object-fit:cover;}
+  .photo-frame .ph-empty{font-size:10px;color:var(--grey);text-align:center;padding:4px;}
+  .photo-frame .ph-label{position:absolute;bottom:0;left:0;right:0;background:rgba(29,43,54,.6);
+    color:#fff;font-size:9px;text-align:center;padding:2px 0;}
+  .photo-actions{display:flex;flex-direction:column;justify-content:center;gap:6px;}
+  .photo-btn{font-size:12px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer;text-align:left;}
+  .photo-btn:active{background:var(--green-soft);}
+  .card-thumb{width:40px;height:40px;border-radius:9px;object-fit:cover;flex-shrink:0;margin-left:8px;}
+
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;
+    justify-content:center;z-index:30;padding:20px;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px;}
+
+  .updated{font-size:11px;color:var(--grey);margin-top:16px;text-align:center;}
+  .close-btn{position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;color:var(--grey);cursor:pointer;}
+  .sheet{position:relative;}
+
+  footer{margin-top:auto;padding:16px 20px 22px;font-size:11px;color:var(--grey);border-top:1px solid var(--line);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>校内トイレマップ</h1>
+    <p>空き状況・清掃状況をみんなで共有しよう</p>
+  </header>
+
+  <div class="floor-tabs" id="floorTabs"></div>
+
+  <div class="view-toggle">
+    <button id="tabMap" class="active">地図</button>
+    <button id="tabList">一覧</button>
+  </div>
+
+  <div class="map-wrap" id="mapWrap"></div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--blue)"></span>男子</span>
+    <span><span class="dot" style="background:var(--plum)"></span>女子</span>
+    <span><span class="dot" style="background:var(--grey)"></span>誰でも</span>
+    <span><span class="dot" style="background:var(--alert)"></span>汚れの報告あり</span>
+  </div>
+
+  <div class="list" id="listView" style="display:none;"></div>
+
+  <footer id="footerNote"></footer>
+</div>
+
+<div class="sheet-overlay" id="overlay">
+  <div class="sheet">
+    <button class="close-btn" id="closeSheet">✕</button>
+    <div class="sheet-handle"></div>
+    <h2 id="sheetTitle"></h2>
+    <div class="loc" id="sheetLoc"></div>
+
+    <div class="photo-box">
+      <div class="photo-frame" id="refPhotoFrame"></div>
+      <div class="photo-frame" id="reportPhotoFrame"></div>
+      <div class="photo-actions">
+        <label class="photo-btn">
+          写真を撮って報告
+          <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none;">
+        </label>
+      </div>
+    </div>
+
+    <div class="group-label">清掃状況</div>
+    <div class="status-row" id="cleanRow"></div>
+
+    <div class="group-label">混雑状況</div>
+    <div class="status-row" id="crowdRow"></div>
+
+    <div class="group-label">紙の在庫</div>
+    <div class="status-row" id="paperRow"></div>
+
+    <div class="updated" id="updatedAt"></div>
+  </div>
+</div>
+
+<script>
+// ---------- データ定義（実際の校舎に合わせて自由に書き換えてください） ----------
+const FLOORS = [
+  {
+    id: "1F", label: "1階",
+    rooms: [
+      {x:20,y:40,w:150,h:70,label:"職員室"},
+      {x:20,y:120,w:150,h:70,label:"事務室"},
+      {x:490,y:40,w:150,h:70,label:"図書室"},
+      {x:490,y:120,w:150,h:70,label:"保健室"},
+    ],
+    stairs: [{x:280,y:15,w:100,h:24,label:"階段"}, {x:280,y:220,w:100,h:24,label:"昇降口"}],
+    toilets: [
+      {id:"1F-M", name:"1階 男子トイレ", loc:"職員室そば", type:"male", x:200, y:75},
+      {id:"1F-F", name:"1階 女子トイレ", loc:"職員室そば", type:"female", x:200, y:145},
+      {id:"1F-A", name:"1階 多目的トイレ", loc:"保健室横", type:"any", x:460, y:145},
+    ]
+  },
+  {
+    id: "2F", label: "2階",
+    rooms: [
+      {x:20,y:40,w:110,h:60,label:"1-A"},
+      {x:20,y:110,w:110,h:60,label:"1-B"},
+      {x:20,y:180,w:110,h:60,label:"1-C"},
+      {x:530,y:40,w:110,h:60,label:"1-D"},
+      {x:530,y:110,w:110,h:60,label:"1-E"},
+      {x:530,y:180,w:110,h:60,label:"1-F"},
+    ],
+    stairs: [{x:280,y:15,w:100,h:24,label:"階段"}, {x:280,y:220,w:100,h:24,label:"階段"}],
+    toilets: [
+      {id:"2F-M", name:"2階 男子トイレ", loc:"1-C 教室横", type:"male", x:160, y:210},
+      {id:"2F-F", name:"2階 女子トイレ", loc:"1-D 教室横", type:"female", x:500, y:70},
+    ]
+  },
+  {
+    id: "3F", label: "3階",
+    rooms: [
+      {x:20,y:40,w:110,h:60,label:"2-A"},
+      {x:20,y:110,w:110,h:60,label:"2-B"},
+      {x:20,y:180,w:110,h:60,label:"2-C"},
+      {x:530,y:40,w:110,h:60,label:"2-D"},
+      {x:530,y:110,w:110,h:60,label:"2-E"},
+      {x:530,y:180,w:110,h:60,label:"2-F"},
+    ],
+    stairs: [{x:280,y:15,w:100,h:24,label:"階段"}, {x:280,y:220,w:100,h:24,label:"階段"}],
+    toilets: [
+      {id:"3F-M", name:"3階 男子トイレ", loc:"2-C 教室横", type:"male", x:160, y:210},
+      {id:"3F-F", name:"3階 女子トイレ", loc:"2-D 教室横", type:"female", x:500, y:70},
+      {id:"3F-A", name:"3階 多目的トイレ", loc:"美術室横", type:"any", x:330, y:245},
+    ]
+  }
+];
+
+const TYPE_COLOR = {male:"var(--blue)", female:"var(--plum)", any:"var(--grey)"};
+const TYPE_LABEL = {male:"男", female:"女", any:"共"};
+
+let currentFloor = 0;
+let currentView = "map";
+let statusCache = {}; // id -> {clean, crowd, paper, updatedAt}
+let activeToilet = null;
+
+const STORAGE_OK = !!(window.storage && window.storage.get);
+
+async function loadStatus(id){
+  if(!STORAGE_OK) return null;
+  try{
+    const res = await window.storage.get("toilet:"+id, true);
+    return res ? JSON.parse(res.value) : null;
+  }catch(e){ return null; }
+}
+async function saveStatus(id, data){
+  if(!STORAGE_OK) return;
+  try{ await window.storage.set("toilet:"+id, JSON.stringify(data), true); }catch(e){}
+}
+
+function allToilets(){
+  return FLOORS.flatMap(f => f.toilets.map(t => ({...t, floor:f.id, floorLabel:f.label})));
+}
+
+async function refreshAllStatus(){
+  const toilets = allToilets();
+  for(const t of toilets){
+    statusCache[t.id] = await loadStatus(t.id) || {clean:"ok", crowd:"free", paper:"ok", updatedAt:null};
+  }
+}
+
+function renderFloorTabs(){
+  const wrap = document.getElementById("floorTabs");
+  wrap.innerHTML = "";
+  FLOORS.forEach((f, i) => {
+    const btn = document.createElement("div");
+    btn.className = "floor-tab" + (i===currentFloor ? " active" : "");
+    btn.textContent = f.label;
+    btn.onclick = () => { currentFloor = i; renderAll(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function renderMap(){
+  const wrap = document.getElementById("mapWrap");
+  const floor = FLOORS[currentFloor];
+  let svg = `<svg viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<rect x="0" y="0" width="680" height="280" rx="12" class="corridor"/>`;
+  floor.rooms.forEach(r=>{
+    svg += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="6" class="room"/>`;
+    svg += `<text x="${r.x + r.w/2}" y="${r.y + r.h/2}" class="room-label" text-anchor="middle" dominant-baseline="central">${r.label}</text>`;
+  });
+  floor.stairs.forEach(s=>{
+    svg += `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="4" class="stair"/>`;
+    svg += `<text x="${s.x + s.w/2}" y="${s.y + s.h/2}" class="stair-label" text-anchor="middle" dominant-baseline="central">${s.label}</text>`;
+  });
+  floor.toilets.forEach(t=>{
+    const st = statusCache[t.id] || {clean:"ok"};
+    const dirty = st.clean === "dirty" ? " status-dirty" : "";
+    svg += `<g class="pin${dirty}" data-id="${t.id}" transform="translate(${t.x},${t.y})">
+      <circle class="ring" r="15" />
+      <circle class="base" r="11" fill="${TYPE_COLOR[t.type]}" />
+      <text x="0" y="1">${TYPE_LABEL[t.type]}</text>
+    </g>`;
+  });
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+  wrap.querySelectorAll(".pin").forEach(el=>{
+    el.addEventListener("click", ()=> openSheet(el.getAttribute("data-id")));
+  });
+}
+
+function statusLabel(kind, val){
+  const map = {
+    clean: {ok:"きれい", dirty:"汚れあり"},
+    crowd: {free:"空いている", crowded:"混んでいる"},
+    paper: {ok:"あり", low:"少ない・なし"}
+  };
+  return map[kind][val] || val;
+}
+
+function renderList(){
+  const wrap = document.getElementById("listView");
+  wrap.innerHTML = "";
+  allToilets().forEach(t=>{
+    const st = statusCache[t.id] || {clean:"ok", crowd:"free", paper:"ok"};
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="card-left">
+        <div class="badge" style="background:${TYPE_COLOR[t.type]}">${TYPE_LABEL[t.type]}</div>
+        <div>
+          <div class="card-title">${t.name}</div>
+          <div class="card-sub">${t.floorLabel}・${t.loc}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;">
+        ${st.clean==="dirty" ? '<span class="tag dirty">汚れ報告</span>' :
+          st.crowd==="crowded" ? '<span class="tag crowded">混雑</span>' :
+          '<span class="tag ok">利用OK</span>'}
+        ${st.photo ? `<img class="card-thumb" src="${st.photo}">` : ""}
+      </div>`;
+    card.onclick = ()=> openSheet(t.id);
+    wrap.appendChild(card);
+  });
+}
+
+function renderAll(){
+  renderFloorTabs();
+  if(currentView === "map"){
+    document.getElementById("mapWrap").style.display = "";
+    document.getElementById("listView").style.display = "none";
+    renderMap();
+  } else {
+    document.getElementById("mapWrap").style.display = "none";
+    document.getElementById("listView").style.display = "flex";
+    renderList();
+  }
+}
+
+function openSheet(id){
+  activeToilet = allToilets().find(t=>t.id===id);
+  const st = statusCache[id] || {clean:"ok", crowd:"free", paper:"ok", updatedAt:null};
+  document.getElementById("sheetTitle").textContent = activeToilet.name;
+  document.getElementById("sheetLoc").textContent = activeToilet.floorLabel + "・" + activeToilet.loc;
+
+  renderPhotoFrame("refPhotoFrame", activeToilet.refPhoto, "参考写真", "未撮影");
+  renderPhotoFrame("reportPhotoFrame", st.photo, "報告写真", "報告なし");
+
+  buildRow("cleanRow", "clean", [["ok","きれい"],["dirty","汚れあり"]], st.clean);
+  buildRow("crowdRow", "crowd", [["free","空いている"],["crowded","混んでいる"]], st.crowd);
+  buildRow("paperRow", "paper", [["ok","あり"],["low","少ない・なし"]], st.paper);
+
+  document.getElementById("updatedAt").textContent = st.updatedAt
+    ? "最終報告: " + new Date(st.updatedAt).toLocaleString("ja-JP")
+    : "まだ報告がありません";
+
+  document.getElementById("overlay").classList.add("open");
+}
+
+function buildRow(rowId, kind, options, current){
+  const row = document.getElementById(rowId);
+  row.innerHTML = "";
+  options.forEach(([val,label])=>{
+    const btn = document.createElement("button");
+    btn.className = "status-btn" + (current===val ? (val==="dirty"||val==="low" ? " alert-selected" : " selected") : "");
+    btn.textContent = label;
+    btn.onclick = async ()=>{
+      const st = statusCache[activeToilet.id] || {clean:"ok", crowd:"free", paper:"ok"};
+      st[kind] = val;
+      st.updatedAt = Date.now();
+      statusCache[activeToilet.id] = st;
+      await saveStatus(activeToilet.id, st);
+      openSheet(activeToilet.id);
+      renderAll();
+    };
+    row.appendChild(btn);
+  });
+}
+
+function renderPhotoFrame(elId, src, labelIfPresent, labelIfEmpty){
+  const el = document.getElementById(elId);
+  if(src){
+    el.innerHTML = `<img src="${src}"><div class="ph-label">${labelIfPresent}</div>`;
+    el.onclick = ()=> openLightbox(src);
+  } else {
+    el.innerHTML = `<div class="ph-empty">${labelIfEmpty}</div>`;
+    el.onclick = null;
+  }
+}
+
+function openLightbox(src){
+  document.getElementById("lightboxImg").src = src;
+  document.getElementById("lightbox").classList.add("open");
+}
+document.getElementById("lightbox").onclick = ()=>{
+  document.getElementById("lightbox").classList.remove("open");
+};
+
+function resizeImageFile(file, maxSize){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h && w > maxSize){ h = h * (maxSize/w); w = maxSize; }
+        else if(h > maxSize){ w = w * (maxSize/h); h = maxSize; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById("photoInput").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file || !activeToilet) return;
+  const dataUrl = await resizeImageFile(file, 640);
+  const st = statusCache[activeToilet.id] || {clean:"ok", crowd:"free", paper:"ok"};
+  st.photo = dataUrl;
+  st.updatedAt = Date.now();
+  statusCache[activeToilet.id] = st;
+  await saveStatus(activeToilet.id, st);
+  openSheet(activeToilet.id);
+  renderAll();
+  e.target.value = "";
+});
+
+document.getElementById("closeSheet").onclick = ()=>{
+  document.getElementById("overlay").classList.remove("open");
+};
+document.getElementById("overlay").onclick = (e)=>{
+  if(e.target.id === "overlay") document.getElementById("overlay").classList.remove("open");
+};
+document.getElementById("tabMap").onclick = ()=>{
+  currentView = "map";
+  document.getElementById("tabMap").classList.add("active");
+  document.getElementById("tabList").classList.remove("active");
+  renderAll();
+};
+document.getElementById("tabList").onclick = ()=>{
+  currentView = "list";
+  document.getElementById("tabList").classList.add("active");
+  document.getElementById("tabMap").classList.remove("active");
+  renderAll();
+};
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+  });
+}
+
+(async function init(){
+  document.getElementById("footerNote").textContent = STORAGE_OK
+    ? "報告データはこのプレビュー内で共有・保存されます（実際の学校サイトとして公開する場合は別途データベースが必要です）。"
+    : "このプレビューではデータ保存が利用できません。実際の校舎データに差し替えてご利用ください。";
+  await refreshAllStatus();
+  renderAll();
+})();
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" src="">
+</div>
+</script>
+</body>
+</html>

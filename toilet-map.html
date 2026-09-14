@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校内トイレマップ</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2F6F4E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="トイレマップ">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --paper:#FBF9F4;
+    --ink:#1D2B36;
+    --green:#2F6F4E;
+    --green-soft:#E4EFE8;
+    --blue:#3E6D9C;
+    --plum:#9C5B7D;
+    --grey:#6B6558;
+    --alert:#C1502E;
+    --line:#D9D4C7;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic",-apple-system,"Noto Sans JP",sans-serif;
+  }
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  header{padding:20px 20px 12px;border-bottom:1px solid var(--line);}
+  header h1{font-size:20px;margin:0 0 2px;letter-spacing:.02em;}
+  header p{margin:0;font-size:12.5px;color:var(--grey);}
+  .back-link{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--green);
+    cursor:pointer;margin-bottom:8px;font-weight:600;}
+
+  /* キャンパス全体ビュー */
+  #campusMap{width:100%;height:280px;border-radius:14px;margin:16px 0 4px;}
+  .building-list{padding:0 20px 90px;display:flex;flex-direction:column;gap:8px;}
+  .building-card{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;
+    cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .building-card:active{background:var(--green-soft);}
+  .building-card .bname{font-size:14.5px;font-weight:600;}
+  .building-card .barrow{color:var(--grey);}
+  .leaflet-pin-label{font-size:11px;font-weight:700;color:var(--ink);white-space:nowrap;
+    background:#fff;padding:1px 6px;border-radius:6px;border:1px solid var(--line);}
+
+  .floor-tabs{display:flex;gap:8px;padding:14px 20px 0;}
+  .floor-tab{flex:1;text-align:center;padding:9px 0;border-radius:999px;border:1px solid var(--line);
+    background:#fff;font-size:14px;cursor:pointer;color:var(--grey);transition:.15s;}
+  .floor-tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+  .map-wrap{padding:16px 16px 6px;position:relative;}
+  .zoom-viewport{position:relative;overflow:hidden;border-radius:12px;background:#F1EEE4;
+    touch-action:none;aspect-ratio:680/280;}
+  .zoom-content{position:absolute;top:0;left:0;width:100%;height:100%;transform-origin:0 0;}
+  .zoom-content svg{width:100%;height:100%;display:block;}
+  .zoom-content img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
+  .zoom-controls{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:4px;z-index:5;}
+  .zoom-controls button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    font-size:15px;cursor:pointer;color:var(--ink);}
+
+  .room{fill:#fff;stroke:var(--line);stroke-width:1;}
+  .room-label{font-size:9px;fill:var(--grey);}
+  .corridor{fill:#F1EEE4;}
+  .stair{fill:#EDE7D8;stroke:var(--line);}
+  .stair-label{font-size:8px;fill:var(--grey);}
+
+  .pin{cursor:pointer;}
+  .pin circle.base{stroke:#fff;stroke-width:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25));}
+  .pin text{fill:#fff;font-size:10px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none;}
+  .pin.status-dirty circle.ring{stroke:var(--alert);}
+  .pin .ring{fill:none;stroke-width:2;opacity:0;}
+  .pin.status-dirty .ring{opacity:1;}
+
+  .pin-overlay{position:absolute;width:26px;height:26px;border-radius:50%;transform:translate(-50%,-50%);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;
+    border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
+  .pin-overlay.status-dirty{box-shadow:0 0 0 3px var(--alert);}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 20px 4px;font-size:11.5px;color:var(--grey);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .list{padding:6px 16px 90px;display:flex;flex-direction:column;gap:8px;}
+  .card{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;
+    display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+  .card:active{background:var(--green-soft);}
+  .card-left{display:flex;align-items:center;gap:10px;}
+  .badge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:12px;font-weight:700;flex-shrink:0;}
+  .card-title{font-size:14.5px;font-weight:600;}
+  .card-sub{font-size:11.5px;color:var(--grey);margin-top:1px;}
+  .tag{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:600;}
+  .tag.ok{background:var(--green-soft);color:var(--green);}
+  .tag.dirty{background:#F6E4DD;color:var(--alert);}
+  .tag.crowded{background:#F1E8DC;color:#8A6A2E;}
+
+  .view-toggle{display:flex;gap:6px;padding:14px 20px 0;justify-content:flex-end;}
+  .view-toggle button{border:none;background:none;font-size:12.5px;color:var(--grey);padding:4px 8px;cursor:pointer;border-bottom:2px solid transparent;}
+  .view-toggle button.active{color:var(--ink);border-color:var(--green);font-weight:600;}
+
+  .sheet-overlay{position:fixed;inset:0;background:rgba(29,43,54,.35);display:none;align-items:flex-end;justify-content:center;z-index:20;}
+  .sheet-overlay.open{display:flex;}
+  .sheet{position:relative;width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:20px 20px 26px;
+    transform:translateY(100%);transition:transform .22s ease;max-height:88vh;overflow-y:auto;}
+  .sheet-overlay.open .sheet{transform:translateY(0);}
+  .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 14px;}
+  .sheet h2{margin:0 0 2px;font-size:17px;}
+  .sheet .loc{font-size:12.5px;color:var(--grey);margin-bottom:14px;}
+  .close-btn{position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;color:var(--grey);cursor:pointer;}
+
+  .profile-empty{font-size:12px;color:var(--grey);background:#F1EEE4;padding:10px 12px;border-radius:10px;margin-bottom:14px;}
+  details.profile-cat{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+  details.profile-cat summary{padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer;list-style:none;
+    display:flex;justify-content:space-between;align-items:center;background:#fff;}
+  details.profile-cat summary::-webkit-details-marker{display:none;}
+  details.profile-cat summary::after{content:"+";color:var(--grey);font-weight:400;}
+  details.profile-cat[open] summary::after{content:"−";}
+  details.profile-cat .cat-body{padding:2px 14px 12px;}
+  .profile-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:6px 0;border-top:1px solid #F1EEE4;}
+  .profile-row .k{color:var(--grey);flex-shrink:0;}
+  .profile-row .v{text-align:right;}
+
+  .group-label{font-size:11.5px;color:var(--grey);margin:16px 0 6px;}
+  .review-card{background:#F7F5EE;border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;}
+  .review-card .rtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;}
+  .review-card img{width:100%;max-width:160px;border-radius:8px;margin-top:6px;cursor:pointer;}
+  .review-card .rtime{color:var(--grey);font-size:11px;margin-top:4px;}
+  .no-review{font-size:12px;color:var(--grey);margin-bottom:10px;}
+
+  .status-row{display:flex;gap:8px;margin-bottom:10px;}
+  .status-btn{flex:1;padding:10px 6px;border-radius:12px;border:1px solid var(--line);background:#fff;
+    font-size:12.5px;cursor:pointer;color:var(--grey);text-align:center;}
+  .status-btn.selected{border-color:var(--green);background:var(--green-soft);color:var(--green);font-weight:600;}
+  .status-btn.alert-selected{border-color:var(--alert);background:#F6E4DD;color:var(--alert);font-weight:600;}
+
+  .photo-box{display:flex;gap:10px;margin-bottom:14px;align-items:center;}
+  .photo-frame{width:72px;height:72px;border-radius:12px;background:#F1EEE4;border:1px solid var(--line);
+    overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;}
+  .photo-frame img{width:100%;height:100%;object-fit:cover;}
+  .photo-frame .ph-empty{font-size:9.5px;color:var(--grey);text-align:center;padding:4px;}
+  .photo-btn{font-size:12px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer;text-align:left;flex:1;}
+  .photo-btn:active{background:var(--green-soft);}
+
+  .submit-btn{width:100%;padding:12px;border-radius:12px;border:none;background:var(--green);color:#fff;
+    font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+  .submit-btn:disabled{opacity:.5;}
+  .submit-note{font-size:11px;color:var(--grey);text-align:center;margin-top:8px;}
+
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;
+    justify-content:center;z-index:30;padding:20px;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px;}
+
+  footer{margin-top:auto;padding:16px 20px 22px;font-size:11px;color:var(--grey);border-top:1px solid var(--line);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="back-link" id="backLink" style="display:none;">← キャンパス地図に戻る</div>
+    <h1 id="pageTitle">校内トイレマップ</h1>
+    <p id="pageSub">設備情報の確認と、みんなでのレビュー投稿</p>
+  </header>
+
+  <!-- キャンパス全体ビュー -->
+  <div id="campusView">
+    <div id="campusMap"></div>
+    <div class="building-list" id="buildingList"></div>
+  </div>
+
+  <!-- 建物内ビュー -->
+  <div id="buildingView" style="display:none;">
+    <div class="floor-tabs" id="floorTabs"></div>
+
+    <div class="view-toggle">
+      <button id="tabMap" class="active">地図</button>
+      <button id="tabList">一覧</button>
+    </div>
+
+    <div class="map-wrap" id="mapWrap"></div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--blue)"></span>男子</span>
+      <span><span class="dot" style="background:var(--plum)"></span>女子</span>
+      <span><span class="dot" style="background:var(--grey)"></span>誰でも</span>
+      <span><span class="dot" style="background:var(--alert)"></span>汚れの報告あり</span>
+    </div>
+
+    <div class="list" id="listView" style="display:none;"></div>
+  </div>
+
+  <footer id="footerNote"></footer>
+</div>
+
+<div class="sheet-overlay" id="overlay">
+  <div class="sheet">
+    <button class="close-btn" id="closeSheet">✕</button>
+    <div class="sheet-handle"></div>
+    <h2 id="sheetTitle"></h2>
+    <div class="loc" id="sheetLoc"></div>
+
+    <div class="group-label" style="margin-top:0;">設備情報</div>
+    <div id="profileArea"></div>
+
+    <div class="group-label">みんなのレビュー</div>
+    <div id="reviewsArea"></div>
+
+    <div class="group-label">レビューを投稿する</div>
+
+    <div class="photo-box">
+      <div class="photo-frame" id="pendingPhotoFrame"></div>
+      <label class="photo-btn">
+        写真を撮って添付(任意)
+        <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none;">
+      </label>
+    </div>
+
+    <div class="status-row" id="cleanRow"></div>
+    <div class="status-row" id="crowdRow"></div>
+    <div class="status-row" id="paperRow"></div>
+
+    <button class="submit-btn" id="submitBtn">この内容でレビューを投稿</button>
+    <div class="submit-note" id="submitNote"></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" src="">
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, collection, getDocs, addDoc,
+  serverTimestamp, query, orderBy, limit
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+let db = null, storage = null, FIREBASE_OK = false;
+try{
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  storage = getStorage(app);
+  FIREBASE_OK = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== "ここに貼り付け";
+}catch(e){ FIREBASE_OK = false; }
+
+// ---------- キャンパス・建物・フロアのデータ（実際の情報に合わせて自由に書き換えてください） ----------
+// lat/lng は仮の値（筑波大学 天王台の住所付近）です。Googleマップで建物を右クリック→座標をコピーして正確な値に差し替えてください。
+const BUILDINGS = [
+  {
+    id: "main", name: "本館（仮）", lat: 36.1075, lng: 140.1015,
+    floors: [
+      {
+        id: "1F", label: "1階",
+        floorImage: null, // 実際の見取り図画像ができたら "floors/main-1f.jpg" のようにパスを入れる
+        rooms: [
+          {x:20,y:40,w:150,h:70,label:"職員室"},
+          {x:20,y:120,w:150,h:70,label:"事務室"},
+          {x:490,y:40,w:150,h:70,label:"図書室"},
+          {x:490,y:120,w:150,h:70,label:"保健室"},
+        ],
+        stairs: [{x:280,y:15,w:100,h:24,label:"階段"}, {x:280,y:220,w:100,h:24,label:"昇降口"}],
+        toilets: [
+          {id:"1F-M", name:"1階 男子トイレ", loc:"職員室そば", type:"male", x:200, y:75, imgX:30, imgY:30},
+          {id:"1F-F", name:"1階 女子トイレ", loc:"職員室そば", type:"female", x:200, y:145, imgX:30, imgY:60},
+          {id:"1F-A", name:"1階 多目的トイレ", loc:"保健室横", type:"any", x:460, y:145, imgX:70, imgY:60},
+        ]
+      },
+      {
+        id: "2F", label: "2階",
+        floorImage: null,
+        rooms: [
+          {x:20,y:40,w:110,h:60,label:"1-A"},
+          {x:20,y:110,w:110,h:60,label:"1-B"},
+          {x:20,y:180,w:110,h:60,label:"1-C"},
+          {x:530,y:40,w:110,h:60,label:"1-D"},
+          {x:530,y:110,w:110,h:60,label:"1-E"},
+          {x:530,y:180,w:110,h:60,label:"1-F"},
+        ],
+        stairs: [{x:280,y:15,w:100,h:24,label:"階段"}, {x:280,y:220,w:100,h:24,label:"階段"}],
+        toilets: [
+          {id:"2F-M", name:"2階 男子トイレ", loc:"1-C 教室横", type:"male", x:160, y:210, imgX:25, imgY:75},
+          {id:"2F-F", name:"2階 女子トイレ", loc:"1-D 教室横", type:"female", x:500, y:70, imgX:75, imgY:25},
+        ]
+      },
+      {
+        id: "3F", label: "3階",
+        floorImage: null,
+        rooms: [
+          {x:20,y:40,w:110,h:60,label:"2-A"},
+          {x:20,y:110,w:110,h:60,label:"2-B"},
+          {x:20,y:180,w:110,h:60,label:"2-C"},
+          {x:530,y:40,w:110,h:60,label:"2-D"},
+          {x:530,y:110,w:110,h:60,label:"2-E"},
+          {x:530,y:180,w:110,h:60,label:"2-F"},
+        ],
+        stairs: [{x:280,y:15,w:100,h:24,label:"階段"}, {x:280,y:220,w:100,h:24,label:"階段"}],
+        toilets: [
+          {id:"3F-M", name:"3階 男子トイレ", loc:"2-C 教室横", type:"male", x:160, y:210, imgX:25, imgY:75},
+          {id:"3F-F", name:"3階 女子トイレ", loc:"2-D 教室横", type:"female", x:500, y:70, imgX:75, imgY:25},
+          {id:"3F-A", name:"3階 多目的トイレ", loc:"美術室横", type:"any", x:330, y:245, imgX:48, imgY:88},
+        ]
+      }
+    ]
+  }
+  // 建物を増やす場合はこのブロックをコピーして id/name/lat/lng/floors を書き換えてください。
+];
+
+const CATEGORY_SCHEMA = [
+  { key:"accessibility", label:"アクセシビリティ", fields:[
+    ["buildingFloor","棟の階数"], ["elevator","エレベーター"], ["toiletFloor","トイレのある階"],
+    ["multipurposeToilet","多目的トイレ"], ["allGenderToilet","オールジェンダートイレ"], ["anyoneToilet","だれでもトイレ"],
+    ["multipurposeFloor","多目的トイレのある階"], ["allGenderFloor","オールジェンダートイレのある階"], ["anyoneFloor","だれでもトイレのある階"],
+    ["brailleGuide","点字案内"], ["audioGuide","音声案内"], ["occupancyCheckDesc","個室の利用率が調べられるか"], ["other","その他"]
+  ]},
+  { key:"genderNorms", label:"ジェンダー規範", fields:[
+    ["pictogramDesc","ピクトグラムの種類"], ["other","その他"]
+  ]},
+  { key:"hygiene", label:"衛生", fields:[
+    ["disinfectant","消毒液"], ["trashCan","ゴミ箱"], ["sanitaryService","生理用品サービス"], ["sanitaryBox","サニタリーボックス"], ["other","その他"]
+  ]},
+  { key:"security", label:"防犯", fields:[
+    ["seatingOutside","トイレ前のソファ・椅子"], ["entranceLayoutDesc","出入り口の配置"], ["hasDoor","出入り口の扉"],
+    ["lightingType","照明の種類"], ["hasWindow","窓の有無"], ["emergencyButton","通報装置・非常用呼び出しボタン"], ["other","その他"]
+  ]},
+  { key:"privacy", label:"プライバシー", fields:[
+    ["urinalPrivacy","小便器の個室化"], ["whiteNoiseDevice","流水音発生装置"], ["other","その他"]
+  ]},
+  { key:"stallUsability", label:"トイレ個室の使いやすさ", fields:[
+    ["stallCount","トイレ個室数"], ["westernCount","洋式トイレの数"], ["heatedSeat","便座温め機能"], ["washlet","ウォシュレット"],
+    ["tpReady","すぐ使えるトイレットペーパー数"], ["tpSpare","予備トイレットペーパー数"], ["flushType","排水様式"],
+    ["hookCount","荷物かけの個数"], ["hookPositionDesc","荷物かけの位置"], ["luggageSpace","荷物置き場"], ["multilingual","多言語表示"], ["other","その他"]
+  ]},
+  { key:"multipurposeUsability", label:"多目的トイレの使いやすさ", fields:[
+    ["door","扉"], ["occupiedIndicator","使用中表示"], ["handrailPosition","手すりの位置"], ["handrailMovable","手すりの可動性"],
+    ["fixtureHeightDesc","設備の高さ"], ["sanitaryBox","サニタリーボックス"], ["luggageSpace","荷物置き場"], ["partition","仕切り"],
+    ["adultCareBed","大人用介護ベッド"], ["ostomateFacility","オストメイト用設備"], ["outlet","コンセント"], ["other","その他"]
+  ]},
+  { key:"spaceUsability", label:"トイレ空間の使いやすさ", fields:[
+    ["layoutType","空間の設計"], ["hvac","空調設備"], ["sinkCount","洗面台の数"], ["faucetType","蛇口の種類"], ["soapType","ハンドソープの種類"],
+    ["dryerCount","自動乾燥機の個数"], ["paperTowelCount","ペーパータオル機の個数"], ["makeupSpaceCount","化粧スペースの個数"],
+    ["restSpace","休憩スペース"], ["changingSpace","着替えスペース"], ["other","その他"]
+  ]},
+  { key:"childFacilities", label:"子供連れ利用者向け設備", fields:[
+    ["nursingRoom","授乳室"], ["babyChair","ベビー椅子"], ["diaperChange","おむつ替え"], ["formulaWaterHeater","調乳用温水器"],
+    ["sink","シンク・手洗い場"], ["kidsToilet","子供用トイレ"], ["kidsSink","子供用洗面台"], ["strollerAccessible","ベビーカーのまま入れる広いトイレ"], ["other","その他"]
+  ]},
+];
+
+const TYPE_COLOR = {male:"var(--blue)", female:"var(--plum)", any:"var(--grey)"};
+const TYPE_LABEL = {male:"男", female:"女", any:"共"};
+
+let topView = "campus";       // "campus" | "building"
+let currentBuildingIdx = 0;
+let currentFloor = 0;
+let currentView = "map";
+let activeToilet = null;
+let profileCache = {};
+let reviewsCache = {};
+let pending = {clean:"ok", crowd:"free", paper:"ok", photo:null};
+let campusLeaflet = null;
+let zoomApi = null;
+
+function currentBuilding(){ return BUILDINGS[currentBuildingIdx]; }
+function currentFloors(){ return currentBuilding().floors; }
+function allToiletsOfBuilding(){
+  return currentFloors().flatMap(f => f.toilets.map(t => ({...t, floor:f.id, floorLabel:f.label})));
+}
+
+// ---------- Firestore ----------
+async function loadProfile(id){
+  if(!FIREBASE_OK) return null;
+  try{ const snap = await getDoc(doc(db, "toilets", id)); return snap.exists() ? snap.data() : null; }
+  catch(e){ return null; }
+}
+async function loadReviews(id){
+  if(!FIREBASE_OK) return [];
+  try{
+    const q = query(collection(db, "toilets", id, "reviews"), orderBy("createdAt","desc"), limit(10));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data());
+  }catch(e){ return []; }
+}
+function latestStatus(id){
+  const reviews = reviewsCache[id] || [];
+  return reviews[0] || {clean:"ok", crowd:"free", paper:"ok"};
+}
+async function refreshBuildingData(){
+  for(const t of allToiletsOfBuilding()){
+    profileCache[t.id] = await loadProfile(t.id);
+    reviewsCache[t.id] = await loadReviews(t.id);
+  }
+}
+
+// ---------- ズーム・パン ----------
+function makeZoomable(viewportEl, contentEl){
+  let scale=1, tx=0, ty=0, panning=false, startX=0, startY=0, startTx=0, startTy=0;
+  let pinchDist=null, pinchScale=1;
+  function apply(){ contentEl.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; }
+  function clamp(){ scale = Math.min(4, Math.max(1, scale)); if(scale===1){ tx=0; ty=0; } apply(); }
+  function dist(a,b){ return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); }
+
+  viewportEl.onwheel = (e)=>{ e.preventDefault(); scale += (e.deltaY<0?0.15:-0.15); clamp(); };
+  viewportEl.onpointerdown = (e)=>{
+    panning = true; startX=e.clientX; startY=e.clientY; startTx=tx; startTy=ty;
+    try{ viewportEl.setPointerCapture(e.pointerId); }catch(err){}
+  };
+  viewportEl.onpointermove = (e)=>{
+    if(!panning || scale===1) return;
+    tx = startTx + (e.clientX-startX); ty = startTy + (e.clientY-startY); apply();
+  };
+  viewportEl.onpointerup = ()=>{ panning=false; };
+  viewportEl.onpointercancel = ()=>{ panning=false; };
+  viewportEl.ondblclick = ()=>{ scale = scale>1 ? 1 : 2; clamp(); };
+  viewportEl.ontouchstart = (e)=>{
+    if(e.touches.length===2){ pinchDist = dist(e.touches[0], e.touches[1]); pinchScale = scale; }
+  };
+  viewportEl.ontouchmove = (e)=>{
+    if(e.touches.length===2 && pinchDist){
+      scale = pinchScale * (dist(e.touches[0], e.touches[1]) / pinchDist); clamp();
+    }
+  };
+  apply();
+  return {
+    zoomIn(){ scale += 0.4; clamp(); },
+    zoomOut(){ scale -= 0.4; clamp(); },
+    reset(){ scale=1; tx=0; ty=0; apply(); }
+  };
+}
+
+// ---------- キャンパスビュー ----------
+function renderCampusView(){
+  document.getElementById("pageTitle").textContent = "校内トイレマップ";
+  document.getElementById("pageSub").textContent = "建物を選んでください";
+  document.getElementById("backLink").style.display = "none";
+  document.getElementById("campusView").style.display = "";
+  document.getElementById("buildingView").style.display = "none";
+
+  if(!campusLeaflet){
+    const center = [BUILDINGS[0].lat, BUILDINGS[0].lng];
+    campusLeaflet = L.map("campusMap").setView(center, 16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    }).addTo(campusLeaflet);
+    BUILDINGS.forEach((b, i)=>{
+      const marker = L.marker([b.lat, b.lng]).addTo(campusLeaflet);
+      marker.bindTooltip(b.name, {permanent:true, direction:"top", className:"leaflet-pin-label"});
+      marker.on("click", ()=> openBuilding(i));
+    });
+  } else {
+    setTimeout(()=> campusLeaflet.invalidateSize(), 50);
+  }
+
+  const list = document.getElementById("buildingList");
+  list.innerHTML = "";
+  BUILDINGS.forEach((b,i)=>{
+    const card = document.createElement("div");
+    card.className = "building-card";
+    card.innerHTML = `<span class="bname">${b.name}</span><span class="barrow">選択 →</span>`;
+    card.onclick = ()=> openBuilding(i);
+    list.appendChild(card);
+  });
+}
+
+async function openBuilding(idx){
+  currentBuildingIdx = idx;
+  currentFloor = 0;
+  topView = "building";
+  document.getElementById("pageTitle").textContent = currentBuilding().name;
+  document.getElementById("pageSub").textContent = "設備情報の確認と、みんなでのレビュー投稿";
+  document.getElementById("backLink").style.display = "inline-flex";
+  document.getElementById("campusView").style.display = "none";
+  document.getElementById("buildingView").style.display = "";
+  await refreshBuildingData();
+  renderAll();
+}
+
+document.getElementById("backLink").onclick = ()=>{
+  topView = "campus";
+  renderCampusView();
+};
+
+// ---------- 建物内ビュー ----------
+function renderFloorTabs(){
+  const wrap = document.getElementById("floorTabs");
+  wrap.innerHTML = "";
+  currentFloors().forEach((f, i) => {
+    const btn = document.createElement("div");
+    btn.className = "floor-tab" + (i===currentFloor ? " active" : "");
+    btn.textContent = f.label;
+    btn.onclick = () => { currentFloor = i; renderAll(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function renderMap(){
+  const wrap = document.getElementById("mapWrap");
+  const floor = currentFloors()[currentFloor];
+
+  let inner = "";
+  if(floor.floorImage){
+    inner += `<img src="${floor.floorImage}" alt="${floor.label}見取り図">`;
+    floor.toilets.forEach(t=>{
+      const st = latestStatus(t.id);
+      const dirty = st.clean === "dirty" ? " status-dirty" : "";
+      inner += `<div class="pin-overlay${dirty}" style="left:${t.imgX}%;top:${t.imgY}%;background:${TYPE_COLOR[t.type]}"
+        data-id="${t.id}">${TYPE_LABEL[t.type]}</div>`;
+    });
+  } else {
+    inner += `<svg viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg">`;
+    inner += `<rect x="0" y="0" width="680" height="280" rx="12" class="corridor"/>`;
+    floor.rooms.forEach(r=>{
+      inner += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="6" class="room"/>`;
+      inner += `<text x="${r.x + r.w/2}" y="${r.y + r.h/2}" class="room-label" text-anchor="middle" dominant-baseline="central">${r.label}</text>`;
+    });
+    floor.stairs.forEach(s=>{
+      inner += `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="4" class="stair"/>`;
+      inner += `<text x="${s.x + s.w/2}" y="${s.y + s.h/2}" class="stair-label" text-anchor="middle" dominant-baseline="central">${s.label}</text>`;
+    });
+    floor.toilets.forEach(t=>{
+      const st = latestStatus(t.id);
+      const dirty = st.clean === "dirty" ? " status-dirty" : "";
+      inner += `<g class="pin${dirty}" data-id="${t.id}" transform="translate(${t.x},${t.y})">
+        <circle class="ring" r="15" />
+        <circle class="base" r="11" fill="${TYPE_COLOR[t.type]}" />
+        <text x="0" y="1">${TYPE_LABEL[t.type]}</text>
+      </g>`;
+    });
+    inner += `</svg>`;
+  }
+
+  wrap.innerHTML = `
+    <div class="zoom-viewport" id="zoomViewport">
+      <div class="zoom-content" id="zoomContent">${inner}</div>
+      <div class="zoom-controls">
+        <button id="zoomInBtn">＋</button>
+        <button id="zoomOutBtn">－</button>
+        <button id="zoomResetBtn">⟲</button>
+      </div>
+    </div>`;
+
+  wrap.querySelectorAll(".pin, .pin-overlay").forEach(el=>{
+    el.addEventListener("click", (e)=>{ e.stopPropagation(); openSheet(el.getAttribute("data-id")); });
+  });
+
+  zoomApi = makeZoomable(document.getElementById("zoomViewport"), document.getElementById("zoomContent"));
+  document.getElementById("zoomInBtn").onclick = ()=> zoomApi.zoomIn();
+  document.getElementById("zoomOutBtn").onclick = ()=> zoomApi.zoomOut();
+  document.getElementById("zoomResetBtn").onclick = ()=> zoomApi.reset();
+}
+
+function renderList(){
+  const wrap = document.getElementById("listView");
+  wrap.innerHTML = "";
+  allToiletsOfBuilding().forEach(t=>{
+    const st = latestStatus(t.id);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="card-left">
+        <div class="badge" style="background:${TYPE_COLOR[t.type]}">${TYPE_LABEL[t.type]}</div>
+        <div>
+          <div class="card-title">${t.name}</div>
+          <div class="card-sub">${t.floorLabel}・${t.loc}</div>
+        </div>
+      </div>
+      <div>
+        ${st.clean==="dirty" ? '<span class="tag dirty">汚れ報告</span>' :
+          st.crowd==="crowded" ? '<span class="tag crowded">混雑</span>' :
+          '<span class="tag ok">利用OK</span>'}
+      </div>`;
+    card.onclick = ()=> openSheet(t.id);
+    wrap.appendChild(card);
+  });
+}
+
+function renderAll(){
+  renderFloorTabs();
+  if(currentView === "map"){
+    document.getElementById("mapWrap").style.display = "";
+    document.getElementById("listView").style.display = "none";
+    renderMap();
+  } else {
+    document.getElementById("mapWrap").style.display = "none";
+    document.getElementById("listView").style.display = "flex";
+    renderList();
+  }
+}
+
+function renderProfile(id){
+  const area = document.getElementById("profileArea");
+  const profile = profileCache[id];
+  if(!profile){ area.innerHTML = `<div class="profile-empty">まだ設備情報が登録されていません。</div>`; return; }
+  let html = "";
+  CATEGORY_SCHEMA.forEach(cat=>{
+    const data = profile[cat.key];
+    if(!data) return;
+    const rows = cat.fields
+      .filter(([k]) => data[k] !== undefined && data[k] !== null && data[k] !== "")
+      .map(([k,label]) => `<div class="profile-row"><span class="k">${label}</span><span class="v">${data[k]}</span></div>`)
+      .join("");
+    if(!rows) return;
+    html += `<details class="profile-cat"><summary>${cat.label}</summary><div class="cat-body">${rows}</div></details>`;
+  });
+  area.innerHTML = html || `<div class="profile-empty">まだ設備情報が登録されていません。</div>`;
+}
+
+function statusText(kind, val){
+  const map = { clean:{ok:"きれい",dirty:"汚れあり"}, crowd:{free:"空いている",crowded:"混んでいる"}, paper:{ok:"紙あり",low:"紙少ない・なし"} };
+  return (map[kind] && map[kind][val]) || val;
+}
+
+function renderReviews(id){
+  const area = document.getElementById("reviewsArea");
+  const reviews = reviewsCache[id] || [];
+  if(reviews.length === 0){ area.innerHTML = `<div class="no-review">まだレビューがありません。最初の投稿をしてみましょう。</div>`; return; }
+  area.innerHTML = reviews.map(r=>{
+    const time = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString("ja-JP") : "";
+    const photoHtml = r.photo ? `<img src="${r.photo}" data-src="${r.photo}">` : "";
+    return `<div class="review-card">
+      <div class="rtags">
+        <span class="tag ${r.clean==='dirty'?'dirty':'ok'}">${statusText('clean', r.clean)}</span>
+        <span class="tag ${r.crowd==='crowded'?'crowded':'ok'}">${statusText('crowd', r.crowd)}</span>
+        <span class="tag ${r.paper==='low'?'dirty':'ok'}">${statusText('paper', r.paper)}</span>
+      </div>
+      ${photoHtml}
+      <div class="rtime">${time}</div>
+    </div>`;
+  }).join("");
+  area.querySelectorAll("img[data-src]").forEach(img=>{ img.onclick = ()=> openLightbox(img.getAttribute("data-src")); });
+}
+
+function openSheet(id){
+  activeToilet = allToiletsOfBuilding().find(t=>t.id===id);
+  pending = {clean:"ok", crowd:"free", paper:"ok", photo:null};
+
+  document.getElementById("sheetTitle").textContent = activeToilet.name;
+  document.getElementById("sheetLoc").textContent = activeToilet.floorLabel + "・" + activeToilet.loc;
+
+  renderProfile(id);
+  renderReviews(id);
+  renderPendingPhoto();
+  buildRow("cleanRow", "clean", [["ok","きれい"],["dirty","汚れあり"]]);
+  buildRow("crowdRow", "crowd", [["free","空いている"],["crowded","混んでいる"]]);
+  buildRow("paperRow", "paper", [["ok","紙あり"],["low","紙少ない・なし"]]);
+
+  document.getElementById("submitNote").textContent = FIREBASE_OK ? "" : "Firebaseの設定が未完了のため、レビューはまだ投稿できません。";
+  document.getElementById("submitBtn").disabled = !FIREBASE_OK;
+  document.getElementById("overlay").classList.add("open");
+}
+
+function buildRow(rowId, kind, options){
+  const row = document.getElementById(rowId);
+  row.innerHTML = "";
+  options.forEach(([val,label])=>{
+    const btn = document.createElement("button");
+    btn.className = "status-btn" + (pending[kind]===val ? (val==="dirty"||val==="low"||val==="crowded" ? " alert-selected" : " selected") : "");
+    btn.textContent = label;
+    btn.onclick = ()=>{
+      pending[kind] = val;
+      buildRow("cleanRow", "clean", [["ok","きれい"],["dirty","汚れあり"]]);
+      buildRow("crowdRow", "crowd", [["free","空いている"],["crowded","混んでいる"]]);
+      buildRow("paperRow", "paper", [["ok","紙あり"],["low","紙少ない・なし"]]);
+    };
+    row.appendChild(btn);
+  });
+}
+
+function renderPendingPhoto(){
+  const el = document.getElementById("pendingPhotoFrame");
+  if(pending.photo){ el.innerHTML = `<img src="${pending.photo}">`; el.onclick = ()=> openLightbox(pending.photo); }
+  else{ el.innerHTML = `<div class="ph-empty">写真なし</div>`; el.onclick = null; }
+}
+
+function openLightbox(src){
+  document.getElementById("lightboxImg").src = src;
+  document.getElementById("lightbox").classList.add("open");
+}
+document.getElementById("lightbox").onclick = ()=> document.getElementById("lightbox").classList.remove("open");
+
+function resizeImageFile(file, maxSize){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h && w > maxSize){ h = h * (maxSize/w); w = maxSize; }
+        else if(h > maxSize){ w = w * (maxSize/h); h = maxSize; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve({dataUrl: canvas.toDataURL("image/jpeg", 0.7), blob}), "image/jpeg", 0.7);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById("photoInput").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const {dataUrl, blob} = await resizeImageFile(file, 640);
+  pending.photo = dataUrl; pending._blob = blob;
+  renderPendingPhoto();
+  e.target.value = "";
+});
+
+document.getElementById("submitBtn").addEventListener("click", async ()=>{
+  if(!activeToilet || !FIREBASE_OK) return;
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true; btn.textContent = "投稿中…";
+  try{
+    let photoUrl = null;
+    if(pending._blob){
+      const fileRef = ref(storage, `reviews/${activeToilet.id}/${Date.now()}.jpg`);
+      await uploadBytes(fileRef, pending._blob);
+      photoUrl = await getDownloadURL(fileRef);
+    }
+    await addDoc(collection(db, "toilets", activeToilet.id, "reviews"), {
+      clean: pending.clean, crowd: pending.crowd, paper: pending.paper, photo: photoUrl, createdAt: serverTimestamp()
+    });
+    reviewsCache[activeToilet.id] = await loadReviews(activeToilet.id);
+    openSheet(activeToilet.id);
+    renderAll();
+  }catch(err){
+    document.getElementById("submitNote").textContent = "投稿に失敗しました。通信環境を確認してください。";
+  }
+  btn.disabled = false; btn.textContent = "この内容でレビューを投稿";
+});
+
+document.getElementById("closeSheet").onclick = ()=> document.getElementById("overlay").classList.remove("open");
+document.getElementById("overlay").onclick = (e)=>{ if(e.target.id === "overlay") document.getElementById("overlay").classList.remove("open"); };
+document.getElementById("tabMap").onclick = ()=>{
+  currentView = "map";
+  document.getElementById("tabMap").classList.add("active");
+  document.getElementById("tabList").classList.remove("active");
+  renderAll();
+};
+document.getElementById("tabList").onclick = ()=>{
+  currentView = "list";
+  document.getElementById("tabList").classList.add("active");
+  document.getElementById("tabMap").classList.remove("active");
+  renderAll();
+};
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+  });
+}
+
+(function init(){
+  document.getElementById("footerNote").textContent = FIREBASE_OK
+    ? "設備情報はFirebaseコンソールから登録・更新してください。レビューは生徒が投稿できます。"
+    : "firebase-config.js に自分のFirebase設定を入力すると、設備情報の表示とレビュー投稿が有効になります。";
+  renderCampusView();
+})();
+</script>
+</body>
+</html>
